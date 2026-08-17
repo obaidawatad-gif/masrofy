@@ -1,0 +1,3489 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>مصاريفي</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#111111" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+<style>
+  html, body { margin:0; padding:0; background:#FFFFFF; }
+  #root { min-height: 100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/prop-types/prop-types.min.js"></script>
+<script crossorigin src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
+<script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel" data-presets="react">
+// بديل مبسّط لأيقونات lucide-react باستخدام رموز نصية (emoji)
+// عشان يشتغل التطبيق كصفحة ويب مستقلة بدون الحاجة لتثبيت مكتبات npm
+function makeIcon(glyph) {
+  return function Icon({ size = 16, color, style, strokeWidth, ...rest }) {
+    return (
+      <span
+        style={{
+          fontSize: size,
+          lineHeight: 1,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: size,
+          height: size,
+          ...style,
+        }}
+        {...rest}
+      >
+        {glyph}
+      </span>
+    );
+  };
+}
+
+const Camera = makeIcon("📷");
+const Mic = makeIcon("🎙");
+const Home = makeIcon("🏠");
+const Car = makeIcon("🚗");
+const Zap = makeIcon("⚡");
+const Wrench = makeIcon("🔧");
+const Building2 = makeIcon("🏢");
+const MoreHorizontal = makeIcon("⋯");
+const ImagePlus = makeIcon("🖼");
+const Check = makeIcon("✓");
+const Repeat = makeIcon("🔁");
+const X = makeIcon("✕");
+const Plus = makeIcon("➕");
+const AlertTriangle = makeIcon("⚠");
+const MapPin = makeIcon("📍");
+const Target = makeIcon("🎯");
+const TrendingDown = makeIcon("📉");
+const Users = makeIcon("👥");
+const ArrowUpRight = makeIcon("↗");
+const ArrowDownRight = makeIcon("↙");
+const CreditCard = makeIcon("💳");
+const Landmark = makeIcon("🏦");
+const ChevronDown = makeIcon("⌄");
+const Pencil = makeIcon("✎");
+const Calendar = makeIcon("📅");
+
+const { BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } = Recharts;
+const { useState, useRef } = React;
+
+
+
+const CATS = {
+  home: { label: "منزلي", icon: Home, color: "#FF6B35" },
+  transport: { label: "مواصلات", icon: Car, color: "#00B37E" },
+  power: { label: "كهرباء", icon: Zap, color: "#FFC93C" },
+  maint: { label: "صيانة", icon: Wrench, color: "#5B8DEF" },
+  rent: { label: "إيجار", icon: Building2, color: "#FF3B30" },
+  other: { label: "أخرى", icon: MoreHorizontal, color: "#6B6B6B" },
+};
+
+const SEED = [
+  { id: 1, cat: "power", label: "فاتورة الكهرباء", amount: 120, hasPhoto: true, place: "شركة الكهرباء", date: "12 أغسطس" },
+  { id: 2, cat: "transport", label: "بنزين", amount: 50, hasPhoto: true, place: "محطة بترومين", date: "13 أغسطس" },
+  { id: 3, cat: "home", label: "بقالة", amount: 84, hasPhoto: true, place: "سوق الخضار", date: "14 أغسطس" },
+];
+
+const PLACE_SUGGESTIONS = ["سوق الخضار", "مول العرب", "مدرسة الأبناء", "صيدلية", "محطة وقود"];
+
+const CHART_COLORS = ["#5B8DEF", "#00B37E", "#FF3B30", "#FFC93C"]; // أزرق، أخضر، أحمر، أصفر
+
+// بيانات شهرية توضيحية (Mock) لعرض شكل مخطط "هذه السنة" — شهر أغسطس (الحالي) يُستبدل بالبيانات الحقيقية
+const MOCK_MONTHS = [
+  { name: "يناير", amount: 2100 },
+  { name: "فبراير", amount: 1950 },
+  { name: "مارس", amount: 2400 },
+  { name: "أبريل", amount: 1800 },
+  { name: "مايو", amount: 2600 },
+  { name: "يونيو", amount: 2200 },
+  { name: "يوليو", amount: 1900 },
+  { name: "أغسطس", amount: 0 }, // يُستبدل بالإجمالي الحقيقي الحالي
+];
+
+const CAT_KEYS = Object.keys(CATS);
+
+// يوم/شهر افتراضيان لمحاكاة "التاريخ الحالي" (لغرض العرض فقط)
+const TODAY = 15;
+const TODAY_MONTH = 8; // أغسطس
+
+const MONTH_NAMES = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+const TODAY_DATE_LABEL = `${TODAY} ${MONTH_NAMES[TODAY_MONTH - 1]}`;
+
+const SEED_RECURRING = [
+  { id: 1, label: "إيجار", cat: "rent", amount: 1500, frequency: "monthly", dueDay: 5, dueMonth: null, note: "", paid: false },
+  { id: 2, label: "كهرباء", cat: "power", amount: 150, frequency: "monthly", dueDay: 10, dueMonth: null, note: "", paid: true },
+  { id: 3, label: "إنترنت", cat: "other", amount: 99, frequency: "monthly", dueDay: 20, dueMonth: null, note: "", paid: false },
+  { id: 4, label: "تجديد الإقامة", cat: "other", amount: 650, frequency: "yearly", dueDay: 1, dueMonth: 8, note: "", paid: false },
+];
+
+const SEED_DEBTS = [
+  { id: 1, person: "أحمد", amount: 200, direction: "owe", settled: false },
+  { id: 2, person: "سارة", amount: 100, direction: "owed", settled: false },
+];
+
+const SEED_LOANS = [
+  { id: 1, type: "loan", bank: "البنك الأهلي", amount: 5000, monthlyPayment: 400, dueDay: 8, paid: false },
+  { id: 2, type: "card", bank: "بنك الرياض", amount: 1200, monthlyPayment: 150, dueDay: 25, paid: true },
+];
+
+function Stamp({ catKey, rotate = -2 }) {
+  const c = CATS[catKey];
+  const Icon = c.icon;
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 4,
+        padding: "3px 8px",
+        borderRadius: 0,
+        border: `1.5px solid ${c.color}`,
+        color: c.color,
+        fontSize: 11,
+        fontWeight: 700,
+        transform: `rotate(${rotate}deg)`,
+        whiteSpace: "nowrap",
+      }}
+    >
+      <Icon size={12} strokeWidth={2.5} />
+      {c.label}
+    </span>
+  );
+}
+
+function Perforation() {
+  return (
+    <div style={{ position: "relative", height: 1, margin: "14px 0" }}>
+      <div
+        style={{
+          borderTop: "1.5px dashed #CCCCCC",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          left: -18,
+          top: -6,
+          width: 12,
+          height: 12,
+          borderRadius: "50%",
+          background: "#F0F0F0",
+          border: "1.5px solid #CCCCCC",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          right: -18,
+          top: -6,
+          width: 12,
+          height: 12,
+          borderRadius: "50%",
+          background: "#F0F0F0",
+          border: "1.5px solid #CCCCCC",
+        }}
+      />
+    </div>
+  );
+}
+
+function App() {
+  const [txns, setTxns] = useState(SEED);
+  const [scanning, setScanning] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [flash, setFlash] = useState(null); // 'photo' | 'voice' | null
+  const [editingTxnId, setEditingTxnId] = useState(null);
+  const [editTxnLabel, setEditTxnLabel] = useState("");
+  const [editTxnAmount, setEditTxnAmount] = useState("");
+  const [editTxnCat, setEditTxnCat] = useState("home");
+  const [showManualAdd, setShowManualAdd] = useState(false);
+  const [manualLabel, setManualLabel] = useState("");
+  const [manualAmount, setManualAmount] = useState("");
+  const [manualCat, setManualCat] = useState("home");
+  const [manualPlace, setManualPlace] = useState("");
+  const [recurring, setRecurring] = useState(SEED_RECURRING);
+  const [showRecurring, setShowRecurring] = useState(false);
+  const [recurringFilter, setRecurringFilter] = useState("all"); // "all" | "overdue"
+  const [newLabel, setNewLabel] = useState("");
+  const [showAddRecurring, setShowAddRecurring] = useState(false);
+  const [newAmount, setNewAmount] = useState("");
+  const [newDay, setNewDay] = useState("");
+  const [newMonth, setNewMonth] = useState("1");
+  const [newFrequency, setNewFrequency] = useState("monthly");
+  const [newNote, setNewNote] = useState("");
+  const [newCat, setNewCat] = useState("home");
+  const [editingRecId, setEditingRecId] = useState(null);
+  const [editRecLabel, setEditRecLabel] = useState("");
+  const [editRecAmount, setEditRecAmount] = useState("");
+  const [editRecDay, setEditRecDay] = useState("");
+  const [editRecMonth, setEditRecMonth] = useState("1");
+  const [editRecFrequency, setEditRecFrequency] = useState("monthly");
+  const [editRecNote, setEditRecNote] = useState("");
+  const [editRecCat, setEditRecCat] = useState("home");
+  const [income, setIncome] = useState(6000); // الدخل الشهري الثابت (الراتب)
+  const [editingIncome, setEditingIncome] = useState(false);
+  const [incomeInput, setIncomeInput] = useState("6000");
+  const [extraIncomes, setExtraIncomes] = useState([
+    { id: 1, source: "عمل حر", amount: 300 },
+  ]);
+  const [addingExtra, setAddingExtra] = useState(false);
+  const [extraSourceInput, setExtraSourceInput] = useState("");
+  const [extraAmountInput, setExtraAmountInput] = useState("");
+  const nextExtraId = useRef(10);
+  const [editingPlaceId, setEditingPlaceId] = useState(null);
+  const [placeInput, setPlaceInput] = useState("");
+  const [micError, setMicError] = useState(null);
+  const [goal, setGoal] = useState({ name: "شراء طابعة", target: 800, saved: 150, monthlyTarget: 100 });
+  const [chartTab, setChartTab] = useState("month");
+  const [debts, setDebts] = useState(SEED_DEBTS);
+  const [showDebts, setShowDebts] = useState(false);
+  const [showAddDebt, setShowAddDebt] = useState(false);
+  const [debtPerson, setDebtPerson] = useState("");
+  const [debtAmount, setDebtAmount] = useState("");
+  const [debtDirection, setDebtDirection] = useState("owe");
+  const nextDebtId = useRef(10);
+  const [editingDebtId, setEditingDebtId] = useState(null);
+  const [editDebtPerson, setEditDebtPerson] = useState("");
+  const [editDebtAmount, setEditDebtAmount] = useState("");
+  const [editDebtDirection, setEditDebtDirection] = useState("owe");
+  const [loans, setLoans] = useState(SEED_LOANS);
+  const [showLoans, setShowLoans] = useState(false);
+  const [showAddLoan, setShowAddLoan] = useState(false);
+  const [loanType, setLoanType] = useState("loan");
+  const [loanBank, setLoanBank] = useState("");
+  const [loanAmount, setLoanAmount] = useState("");
+  const [loanMonthly, setLoanMonthly] = useState("");
+  const [loanDay, setLoanDay] = useState("");
+  const nextLoanId = useRef(10);
+  const [editingLoanId, setEditingLoanId] = useState(null);
+  const [editLoanBank, setEditLoanBank] = useState("");
+  const [editLoanAmount, setEditLoanAmount] = useState("");
+  const [editLoanMonthly, setEditLoanMonthly] = useState("");
+  const [editLoanDay, setEditLoanDay] = useState("");
+  const [openGoal, setOpenGoal] = useState(false);
+  const [openChart, setOpenChart] = useState(false);
+  const [editingGoal, setEditingGoal] = useState(false);
+  const [goalNameInput, setGoalNameInput] = useState("");
+  const [goalTargetInput, setGoalTargetInput] = useState("");
+  const [goalMonthlyInput, setGoalMonthlyInput] = useState("");
+  const [contribInput, setContribInput] = useState("");
+  const nextId = useRef(10);
+  const nextRecId = useRef(10);
+  const mediaRecorderRef = useRef(null);
+  const chunksRef = useRef([]);
+  const streamRef = useRef(null);
+
+  const missingPhoto = txns.filter((t) => !t.hasPhoto);
+
+  function isRecurringOverdue(r) {
+    if (r.paid) return false;
+    if (r.frequency === "monthly") return r.dueDay < TODAY;
+    if (r.frequency === "yearly") {
+      return r.dueMonth < TODAY_MONTH || (r.dueMonth === TODAY_MONTH && r.dueDay < TODAY);
+    }
+    return false; // "أخرى" لا تُحسب تلقائياً كمتأخرة
+  }
+
+  const overdue = recurring.filter((r) => !r.paid && isRecurringOverdue(r));
+  const upcoming = recurring.filter((r) => !r.paid && !isRecurringOverdue(r));
+
+  function markPaid(id) {
+    setRecurring((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, paid: true } : r))
+    );
+    const item = recurring.find((r) => r.id === id);
+    if (item) {
+      setTxns((prev) => [
+        {
+          id: nextId.current++,
+          cat: item.cat,
+          label: item.label,
+          amount: item.amount,
+          hasPhoto: false,
+          place: "",
+          date: TODAY_DATE_LABEL,
+        },
+        ...prev,
+      ]);
+    }
+  }
+
+  function addRecurring() {
+    if (!newLabel || !newAmount) return;
+    if (newFrequency === "monthly" && !newDay) return;
+    if (newFrequency === "yearly" && (!newDay || !newMonth)) return;
+    if (newFrequency === "other" && !newNote) return;
+    setRecurring((prev) => [
+      ...prev,
+      {
+        id: nextRecId.current++,
+        label: newLabel,
+        cat: newCat,
+        amount: Number(newAmount),
+        frequency: newFrequency,
+        dueDay: newFrequency !== "other" ? Number(newDay) : null,
+        dueMonth: newFrequency === "yearly" ? Number(newMonth) : null,
+        note: newFrequency === "other" ? newNote : "",
+        paid: false,
+      },
+    ]);
+    setNewLabel("");
+    setNewAmount("");
+    setNewDay("");
+    setNewMonth("1");
+    setNewFrequency("monthly");
+    setNewNote("");
+    setNewCat("home");
+    setShowAddRecurring(false);
+  }
+
+  function deleteRecurring(id) {
+    setRecurring((prev) => prev.filter((r) => r.id !== id));
+    if (editingRecId === id) setEditingRecId(null);
+  }
+
+  function startEditRecurring(r) {
+    setEditingRecId(r.id);
+    setEditRecLabel(r.label);
+    setEditRecAmount(String(r.amount));
+    setEditRecCat(r.cat);
+    setEditRecFrequency(r.frequency);
+    setEditRecDay(r.dueDay ? String(r.dueDay) : "");
+    setEditRecMonth(r.dueMonth ? String(r.dueMonth) : "1");
+    setEditRecNote(r.note || "");
+  }
+
+  function saveEditRecurring(id) {
+    const amt = Number(editRecAmount);
+    if (!editRecLabel || isNaN(amt) || amt <= 0) return;
+    if (editRecFrequency === "monthly" && !editRecDay) return;
+    if (editRecFrequency === "yearly" && (!editRecDay || !editRecMonth)) return;
+    if (editRecFrequency === "other" && !editRecNote) return;
+    setRecurring((prev) =>
+      prev.map((r) =>
+        r.id === id
+          ? {
+              ...r,
+              label: editRecLabel,
+              amount: amt,
+              cat: editRecCat,
+              frequency: editRecFrequency,
+              dueDay: editRecFrequency !== "other" ? Number(editRecDay) : null,
+              dueMonth: editRecFrequency === "yearly" ? Number(editRecMonth) : null,
+              note: editRecFrequency === "other" ? editRecNote : "",
+            }
+          : r
+      )
+    );
+    setEditingRecId(null);
+  }
+
+  function randomCat() {
+    return CAT_KEYS[Math.floor(Math.random() * CAT_KEYS.length)];
+  }
+
+  function handleCapture() {
+    if (scanning) return;
+    setScanning(true);
+    setTimeout(() => {
+      const cat = randomCat();
+      const amount = Math.floor(20 + Math.random() * 180);
+      const id = nextId.current++;
+      setTxns((prev) => [
+        {
+          id,
+          cat,
+          label: `فاتورة ${CATS[cat].label}`,
+          amount,
+          hasPhoto: true,
+          place: "",
+          date: TODAY_DATE_LABEL,
+        },
+        ...prev,
+      ]);
+      setScanning(false);
+      setFlash("photo");
+      setEditingPlaceId(id);
+      setPlaceInput("");
+      setTimeout(() => setFlash(null), 1600);
+    }, 1300);
+  }
+
+  function handleVoice() {
+    if (recording) {
+      // إيقاف التسجيل
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+      return;
+    }
+
+    setMicError(null);
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      setMicError("المتصفح لا يدعم الوصول للميكروفون هنا");
+      return;
+    }
+
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then((stream) => {
+        streamRef.current = stream;
+        chunksRef.current = [];
+        const mr = new MediaRecorder(stream);
+        mediaRecorderRef.current = mr;
+
+        mr.ondataavailable = (e) => {
+          if (e.data.size > 0) chunksRef.current.push(e.data);
+        };
+
+        mr.onstop = () => {
+          const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+          const audioUrl = URL.createObjectURL(blob);
+          const cat = randomCat();
+          const amount = Math.floor(10 + Math.random() * 90);
+          const id = nextId.current++;
+          setTxns((prev) => [
+            {
+              id,
+              cat,
+              label: `صرفت على ${CATS[cat].label}`,
+              amount,
+              hasPhoto: false,
+              place: "",
+              audioUrl,
+              date: TODAY_DATE_LABEL,
+            },
+            ...prev,
+          ]);
+          setRecording(false);
+          setFlash("voice");
+          setEditingPlaceId(id);
+          setPlaceInput("");
+          setTimeout(() => setFlash(null), 1600);
+          // إيقاف الميكروفون فعلياً
+          stream.getTracks().forEach((t) => t.stop());
+        };
+
+        mr.start();
+        setRecording(true);
+      })
+      .catch(() => {
+        setMicError("ما قدرنا نوصل للميكروفون — تأكد من إعطاء الإذن");
+      });
+  }
+
+  function savePlace(id) {
+    setTxns((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, place: placeInput.trim() } : t))
+    );
+    setEditingPlaceId(null);
+    setPlaceInput("");
+  }
+
+  function deleteTxn(id) {
+    setTxns((prev) => prev.filter((t) => t.id !== id));
+    if (editingTxnId === id) setEditingTxnId(null);
+  }
+
+  function startEditTxn(t) {
+    setEditingTxnId(t.id);
+    setEditTxnLabel(t.label);
+    setEditTxnAmount(String(t.amount));
+    setEditTxnCat(t.cat);
+  }
+
+  function saveEditTxn(id) {
+    const amt = Number(editTxnAmount);
+    if (!editTxnLabel || isNaN(amt) || amt <= 0) return;
+    setTxns((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, label: editTxnLabel, amount: amt, cat: editTxnCat } : t))
+    );
+    setEditingTxnId(null);
+  }
+
+  function addManualTxn() {
+    const amt = Number(manualAmount);
+    if (!manualLabel || isNaN(amt) || amt <= 0) return;
+    setTxns((prev) => [
+      {
+        id: nextId.current++,
+        cat: manualCat,
+        label: manualLabel,
+        amount: amt,
+        hasPhoto: false,
+        place: manualPlace.trim(),
+        date: TODAY_DATE_LABEL,
+      },
+      ...prev,
+    ]);
+    setManualLabel("");
+    setManualAmount("");
+    setManualCat("home");
+    setManualPlace("");
+    setShowManualAdd(false);
+  }
+
+  function saveGoal() {
+    const t = Number(goalTargetInput);
+    const mt = Number(goalMonthlyInput) || 0;
+    if (!goalNameInput || isNaN(t) || t <= 0) return;
+    setGoal((g) => ({ ...g, name: goalNameInput, target: t, monthlyTarget: mt }));
+    setEditingGoal(false);
+  }
+
+  function deleteGoal() {
+    setGoal({ name: "", target: 0, saved: 0, monthlyTarget: 0 });
+    setEditingGoal(false);
+  }
+
+  function addContribution() {
+    const v = Number(contribInput);
+    if (isNaN(v) || v <= 0) return;
+    setGoal((g) => ({ ...g, saved: g.saved + v }));
+    setContribInput("");
+  }
+
+  function attachPhoto(id) {
+    setTxns((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, hasPhoto: true } : t))
+    );
+  }
+
+  const total = txns.reduce((s, t) => s + t.amount, 0);
+  const extraTotal = extraIncomes.reduce((s, e) => s + e.amount, 0);
+  const totalIncome = income + extraTotal;
+  const remaining = totalIncome - total;
+  const spentPct = totalIncome > 0 ? Math.min(100, (total / totalIncome) * 100) : 0;
+  const barColor = spentPct > 90 ? "#FF3B30" : spentPct > 60 ? "#FFC93C" : "#00B37E";
+
+  // متبقي بعد حسم الفواتير الاعتيادية الشهرية (بغض النظر عن باقي المصاريف)
+  const recurringTotal = recurring.reduce((s, r) => s + r.amount, 0);
+  const loansMonthlyTotal = loans.reduce((s, l) => s + l.monthlyPayment, 0);
+  const loansOutstandingTotal = loans.reduce((s, l) => s + l.amount, 0);
+  const remainingAfterBills = totalIncome - recurringTotal - loansMonthlyTotal;
+
+  // الديون الشخصية
+  const owedByMe = debts.filter((d) => d.direction === "owe" && !d.settled);
+  const owedToMe = debts.filter((d) => d.direction === "owed" && !d.settled);
+  const totalIOwe = owedByMe.reduce((s, d) => s + d.amount, 0);
+  const totalOwedToMe = owedToMe.reduce((s, d) => s + d.amount, 0);
+  const netDebt = totalOwedToMe - totalIOwe;
+
+  function addDebt() {
+    const v = Number(debtAmount);
+    if (!debtPerson || isNaN(v) || v <= 0) return;
+    setDebts((prev) => [
+      ...prev,
+      { id: nextDebtId.current++, person: debtPerson, amount: v, direction: debtDirection, settled: false },
+    ]);
+    setDebtPerson("");
+    setDebtAmount("");
+    setShowAddDebt(false);
+  }
+
+  function settleDebt(id) {
+    setDebts((prev) => prev.map((d) => (d.id === id ? { ...d, settled: true } : d)));
+  }
+
+  function deleteDebt(id) {
+    setDebts((prev) => prev.filter((d) => d.id !== id));
+    if (editingDebtId === id) setEditingDebtId(null);
+  }
+
+  function startEditDebt(d) {
+    setEditingDebtId(d.id);
+    setEditDebtPerson(d.person);
+    setEditDebtAmount(String(d.amount));
+    setEditDebtDirection(d.direction);
+  }
+
+  function saveEditDebt(id) {
+    const v = Number(editDebtAmount);
+    if (!editDebtPerson || isNaN(v) || v <= 0) return;
+    setDebts((prev) =>
+      prev.map((d) =>
+        d.id === id ? { ...d, person: editDebtPerson, amount: v, direction: editDebtDirection } : d
+      )
+    );
+    setEditingDebtId(null);
+  }
+
+  // قروض وبطاقات ائتمان
+  function addLoan() {
+    const amt = Number(loanAmount);
+    const mp = Number(loanMonthly);
+    const day = Number(loanDay);
+    if (!loanBank || isNaN(amt) || amt <= 0 || isNaN(mp) || mp <= 0 || isNaN(day)) return;
+    setLoans((prev) => [
+      ...prev,
+      {
+        id: nextLoanId.current++,
+        type: loanType,
+        bank: loanBank,
+        amount: amt,
+        monthlyPayment: mp,
+        dueDay: day,
+        paid: false,
+      },
+    ]);
+    setLoanBank("");
+    setLoanAmount("");
+    setLoanMonthly("");
+    setLoanDay("");
+    setShowAddLoan(false);
+  }
+
+  function payLoan(id) {
+    setLoans((prev) => prev.map((l) => (l.id === id ? { ...l, paid: true } : l)));
+  }
+
+  function deleteLoan(id) {
+    setLoans((prev) => prev.filter((l) => l.id !== id));
+    if (editingLoanId === id) setEditingLoanId(null);
+  }
+
+  function startEditLoan(l) {
+    setEditingLoanId(l.id);
+    setEditLoanBank(l.bank);
+    setEditLoanAmount(String(l.amount));
+    setEditLoanMonthly(String(l.monthlyPayment));
+    setEditLoanDay(String(l.dueDay));
+  }
+
+  function saveEditLoan(id) {
+    const amt = Number(editLoanAmount);
+    const mp = Number(editLoanMonthly);
+    const day = Number(editLoanDay);
+    if (!editLoanBank || isNaN(amt) || amt <= 0 || isNaN(mp) || mp <= 0 || isNaN(day)) return;
+    setLoans((prev) =>
+      prev.map((l) =>
+        l.id === id ? { ...l, bank: editLoanBank, amount: amt, monthlyPayment: mp, dueDay: day } : l
+      )
+    );
+    setEditingLoanId(null);
+  }
+
+  // اقتراح فئة يمكن الحسم منها لصالح الهدف المستقبلي
+  const catTotals = {};
+  txns.forEach((t) => {
+    catTotals[t.cat] = (catTotals[t.cat] || 0) + t.amount;
+  });
+  const topCatEntry = Object.entries(catTotals).sort((a, b) => b[1] - a[1])[0];
+  const goalRemaining = Math.max(0, goal.target - goal.saved);
+  const goalPct = goal.target > 0 ? Math.min(100, (goal.saved / goal.target) * 100) : 0;
+  const suggestedCut = topCatEntry ? Math.round(topCatEntry[1] * 0.2) : 0;
+
+  // بيانات المخططات البيانية
+  const monthChartData = Object.entries(catTotals).map(([k, v]) => ({
+    name: CATS[k].label,
+    amount: v,
+  }));
+  const yearChartData = MOCK_MONTHS.map((m, i) =>
+    i === MOCK_MONTHS.length - 1 ? { ...m, amount: total } : m
+  );
+  const ytdChartData = yearChartData.reduce((acc, m, i) => {
+    const prevSum = i > 0 ? acc[i - 1].amount : 0;
+    acc.push({ name: m.name, amount: prevSum + m.amount });
+    return acc;
+  }, []);
+
+  function addExtraIncome() {
+    const v = Number(extraAmountInput);
+    if (!extraSourceInput || isNaN(v) || v <= 0) return;
+    setExtraIncomes((prev) => [
+      ...prev,
+      { id: nextExtraId.current++, source: extraSourceInput, amount: v },
+    ]);
+    setExtraSourceInput("");
+    setExtraAmountInput("");
+    setAddingExtra(false);
+  }
+
+  function removeExtraIncome(id) {
+    setExtraIncomes((prev) => prev.filter((e) => e.id !== id));
+  }
+
+  function saveIncome() {
+    const v = Number(incomeInput);
+    if (!isNaN(v) && v >= 0) setIncome(v);
+    setEditingIncome(false);
+  }
+
+  return (
+    <div
+      dir="rtl"
+      style={{
+        minHeight: "100vh",
+        background: "#FFFFFF",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 24,
+        fontFamily: "'Cairo', sans-serif",
+      }}
+    >
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=IBM+Plex+Mono:wght@500;600;700&display=swap');
+        * { box-sizing: border-box; }
+        button { font-family: inherit; cursor: pointer; }
+        @keyframes pulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(178,58,46,0.35); }
+          50% { box-shadow: 0 0 0 14px rgba(178,58,46,0); }
+        }
+        @keyframes scanline {
+          0% { top: 0%; }
+          100% { top: 100%; }
+        }
+        @keyframes slideIn {
+          from { opacity: 0; transform: translateY(-6px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes toastIn {
+          0% { opacity: 0; transform: translate(-50%, 8px); }
+          15% { opacity: 1; transform: translate(-50%, 0); }
+          85% { opacity: 1; transform: translate(-50%, 0); }
+          100% { opacity: 0; transform: translate(-50%, -6px); }
+        }
+      `}</style>
+
+      {/* phone frame */}
+      <div
+        style={{
+          width: 380,
+          maxWidth: "100%",
+          background: "#111316",
+          borderRadius: 40,
+          padding: 12,
+          boxShadow: "0 30px 60px -20px rgba(0,0,0,0.5)",
+        }}
+      >
+        <div
+          style={{
+            background: "#FFFFFF",
+            borderRadius: 30,
+            overflow: "hidden",
+            position: "relative",
+            height: 720,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {/* status bar */}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              padding: "10px 22px 0",
+              fontSize: 12,
+              color: "#111111",
+              fontFamily: "'IBM Plex Mono', monospace",
+            }}
+          >
+            <span>9:41</span>
+            <span>● ● ●</span>
+          </div>
+
+          <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+
+          {/* header */}
+          <div
+            style={{
+              padding: "10px 22px 0",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 13, color: "#6B6B6B", fontWeight: 600 }}>
+                مصاريفي — أغسطس
+              </div>
+              <div
+                style={{
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: 36,
+                  fontWeight: 700,
+                  color: "#111111",
+                  marginTop: 2,
+                }}
+              >
+                {total.toLocaleString()} <span style={{ fontSize: 18, color: "#6B6B6B" }}>ر.س</span>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
+              {overdue.length > 0 && (
+                <button
+                  onClick={() => {
+                    setRecurringFilter("overdue");
+                    setShowRecurring(true);
+                  }}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                    border: "none",
+                    borderRadius: 0,
+                    padding: "7px 11px",
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    background: "#FF3B30",
+                    color: "#fff",
+                    animation: "pulse 1.6s infinite",
+                  }}
+                >
+                  <AlertTriangle size={13} /> {overdue.length} مستحقة
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setRecurringFilter("all");
+                  setShowRecurring(true);
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                  border: "none",
+                  borderRadius: 0,
+                  padding: "7px 11px",
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  background: "#5B8DEF",
+                  color: "#fff",
+                }}
+              >
+                <Repeat size={13} /> الثابتة
+              </button>
+            </div>
+          </div>
+
+          {/* الدخل الشهري والمتبقي */}
+          <div style={{ padding: "12px 22px 0" }}>
+            <div
+              style={{
+                background: "#F0FAF5",
+                border: "1px solid #B8E6C9",
+                borderRadius: 0,
+                padding: "12px 14px",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 11.5, color: "#6B6B6B", fontWeight: 600 }}>الراتب الثابت</span>
+                {editingIncome ? (
+                  <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                    <input
+                      autoFocus
+                      type="number"
+                      value={incomeInput}
+                      onChange={(e) => setIncomeInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && saveIncome()}
+                      style={{
+                        width: 90,
+                        border: "1px solid #CCCCCC",
+                        borderRadius: 0,
+                        padding: "4px 8px",
+                        fontSize: 12,
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        textAlign: "left",
+                      }}
+                    />
+                    <button
+                      onClick={saveIncome}
+                      style={{
+                        background: "#111111",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 0,
+                        padding: "5px 9px",
+                        fontSize: 11,
+                        fontWeight: 700,
+                      }}
+                    >
+                      حفظ
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setIncomeInput(String(income));
+                      setEditingIncome(true);
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      fontFamily: "'IBM Plex Mono', monospace",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: "#111111",
+                    }}
+                  >
+                    {income.toLocaleString()} ر.س ✎
+                  </button>
+                )}
+              </div>
+
+              {/* دخل إضافي هذا الشهر */}
+              <div style={{ marginTop: 10, borderTop: "1px dashed #E5E5E5", paddingTop: 8 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 11, color: "#6B6B6B" }}>دخل إضافي هذا الشهر</span>
+                  <button
+                    onClick={() => setAddingExtra((v) => !v)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 3,
+                      background: "none",
+                      border: "1px dashed #5B8DEF",
+                      color: "#5B8DEF",
+                      borderRadius: 0,
+                      padding: "3px 7px",
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                    }}
+                  >
+                    <Plus size={11} /> إضافة مصدر
+                  </button>
+                </div>
+
+                {extraIncomes.length > 0 && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
+                    {extraIncomes.map((e) => (
+                      <div
+                        key={e.id}
+                        style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5 }}
+                      >
+                        <span style={{ color: "#111111" }}>{e.source}</span>
+                        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700 }}>
+                            +{e.amount.toLocaleString()} ر.س
+                          </span>
+                          <button
+                            onClick={() => removeExtraIncome(e.id)}
+                            style={{ background: "none", border: "none", color: "#FF3B30", padding: 0 }}
+                          >
+                            <X size={12} />
+                          </button>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {addingExtra && (
+                  <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                    <input
+                      autoFocus
+                      placeholder="المصدر (مثال: عمل حر)"
+                      value={extraSourceInput}
+                      onChange={(e) => setExtraSourceInput(e.target.value)}
+                      style={{
+                        flex: 1.4,
+                        border: "1px solid #CCCCCC",
+                        borderRadius: 0,
+                        padding: "6px 8px",
+                        fontSize: 11.5,
+                      }}
+                    />
+                    <input
+                      type="number"
+                      placeholder="المبلغ"
+                      value={extraAmountInput}
+                      onChange={(e) => setExtraAmountInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && addExtraIncome()}
+                      style={{
+                        flex: 1,
+                        border: "1px solid #CCCCCC",
+                        borderRadius: 0,
+                        padding: "6px 8px",
+                        fontSize: 11.5,
+                        fontFamily: "'IBM Plex Mono', monospace",
+                      }}
+                    />
+                    <button
+                      onClick={addExtraIncome}
+                      style={{
+                        background: "#5B8DEF",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 0,
+                        padding: "6px 10px",
+                        fontSize: 11,
+                        fontWeight: 700,
+                      }}
+                    >
+                      إضافة
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div
+                style={{
+                  height: 7,
+                  background: "#F0F0F0",
+                  borderRadius: 0,
+                  marginTop: 10,
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    width: `${spentPct}%`,
+                    height: "100%",
+                    background: barColor,
+                    borderRadius: 0,
+                    transition: "width 0.4s ease",
+                  }}
+                />
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+                <span style={{ fontSize: 11, color: "#6B6B6B" }}>
+                  الدخل الكلي: {totalIncome.toLocaleString()} ر.س
+                </span>
+                <span
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 800,
+                    color: remaining < 0 ? "#FF3B30" : "#111111",
+                    fontFamily: "'IBM Plex Mono', monospace",
+                  }}
+                >
+                  المتبقي: {remaining.toLocaleString()} ر.س
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* المتبقي بعد حسم الفواتير الاعتيادية */}
+          <div style={{ padding: "10px 22px 0" }}>
+            <div
+              style={{
+                background: "#F5F8FF",
+                border: "1px solid #C9D9FA",
+                borderRadius: 0,
+                padding: "10px 14px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <span style={{ fontSize: 11.5, color: "#3A5A9B", fontWeight: 600 }}>
+                المتبقي بعد حسم الفواتير والالتزامات ({(recurringTotal + loansMonthlyTotal).toLocaleString()} ر.س)
+              </span>
+              <span
+                style={{
+                  fontSize: 14,
+                  fontWeight: 800,
+                  color: remainingAfterBills < 0 ? "#FF3B30" : "#3A5A9B",
+                  fontFamily: "'IBM Plex Mono', monospace",
+                }}
+              >
+                {remainingAfterBills.toLocaleString()} ر.س
+              </span>
+            </div>
+          </div>
+
+          {/* ملخص الديون الشخصية */}
+          <div style={{ padding: "10px 22px 0" }}>
+            <button
+              onClick={() => setShowDebts(true)}
+              style={{
+                width: "100%",
+                background: "#fff",
+                border: "1px solid #E5E5E5",
+                borderRadius: 0,
+                padding: "10px 14px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 11.5,
+                  color: "#6B6B6B",
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                }}
+              >
+                <Users size={13} /> ديون شخصية
+              </span>
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 800,
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  color: netDebt === 0 ? "#111111" : netDebt > 0 ? "#00B37E" : "#FF3B30",
+                }}
+              >
+                {netDebt === 0
+                  ? "لا ديون معلّقة"
+                  : netDebt > 0
+                  ? `لك ${netDebt.toLocaleString()} ر.س`
+                  : `عليك ${Math.abs(netDebt).toLocaleString()} ر.س`}
+              </span>
+            </button>
+          </div>
+
+          {/* ملخص القروض وبطاقات الائتمان */}
+          <div style={{ padding: "10px 22px 0" }}>
+            <button
+              onClick={() => setShowLoans(true)}
+              style={{
+                width: "100%",
+                background: "#fff",
+                border: "1px solid #E5E5E5",
+                borderRadius: 0,
+                padding: "10px 14px",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 11.5,
+                  color: "#6B6B6B",
+                  fontWeight: 600,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 5,
+                }}
+              >
+                <Landmark size={13} /> قروض وبطاقات ائتمان
+              </span>
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 800,
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  color: "#111111",
+                }}
+              >
+                قسط شهري {loansMonthlyTotal.toLocaleString()} ر.س
+              </span>
+            </button>
+          </div>
+
+          {/* الهدف المستقبلي */}
+          <div style={{ padding: "10px 22px 0" }}>
+            <div
+              style={{
+                background: "#fff",
+                border: "1px solid #E5E5E5",
+                borderRadius: 0,
+                padding: "12px 14px",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span
+                  style={{
+                    fontSize: 11.5,
+                    color: "#6B6B6B",
+                    fontWeight: 600,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                  }}
+                >
+                  <Target size={13} /> هدف مستقبلي
+                </span>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  {editingGoal ? null : goal.target === 0 ? (
+                    <button
+                      onClick={() => {
+                        setGoalNameInput("");
+                        setGoalTargetInput("");
+                        setGoalMonthlyInput("");
+                        setEditingGoal(true);
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        background: "#111111",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 0,
+                        padding: "5px 9px",
+                        fontSize: 11,
+                        fontWeight: 700,
+                      }}
+                    >
+                      <Plus size={12} /> إضافة هدف
+                    </button>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: 12.5, fontWeight: 700, color: "#111111" }}>{goal.name}</span>
+                      <button
+                        onClick={() => {
+                          setGoalNameInput(goal.name);
+                          setGoalTargetInput(String(goal.target));
+                          setGoalMonthlyInput(String(goal.monthlyTarget || 0));
+                          setEditingGoal(true);
+                        }}
+                        style={{ background: "none", border: "1px solid #E5E5E5", borderRadius: 0, padding: 4, display: "flex" }}
+                      >
+                        <Pencil size={11} color="#6B6B6B" />
+                      </button>
+                      <button
+                        onClick={deleteGoal}
+                        style={{ background: "none", border: "1px solid #FFB3AD", borderRadius: 0, padding: 4, display: "flex" }}
+                      >
+                        <X size={11} color="#FF3B30" />
+                      </button>
+                    </>
+                  )}
+                  {goal.target > 0 && !editingGoal && (
+                    <button
+                      onClick={() => setOpenGoal((v) => !v)}
+                      style={{ background: "none", border: "none", padding: 2, display: "flex" }}
+                    >
+                      <ChevronDown
+                        size={16}
+                        color="#6B6B6B"
+                        style={{
+                          transform: openGoal ? "rotate(180deg)" : "none",
+                          transition: "transform 0.2s ease",
+                        }}
+                      />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {editingGoal && (
+                <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
+                  <input
+                    autoFocus
+                    placeholder="اسم الهدف"
+                    value={goalNameInput}
+                    onChange={(e) => setGoalNameInput(e.target.value)}
+                    style={inputStyle}
+                  />
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <input
+                      type="number"
+                      placeholder="المبلغ الكلي المطلوب"
+                      value={goalTargetInput}
+                      onChange={(e) => setGoalTargetInput(e.target.value)}
+                      style={{ ...inputStyle, flex: 1 }}
+                    />
+                    <input
+                      type="number"
+                      placeholder="التوفير الشهري المستهدف"
+                      value={goalMonthlyInput}
+                      onChange={(e) => setGoalMonthlyInput(e.target.value)}
+                      style={{ ...inputStyle, flex: 1 }}
+                    />
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button
+                      onClick={saveGoal}
+                      style={{ flex: 1, background: "#111111", color: "#fff", border: "none", borderRadius: 0, padding: "8px", fontSize: 12, fontWeight: 700 }}
+                    >
+                      حفظ
+                    </button>
+                    <button
+                      onClick={() => setEditingGoal(false)}
+                      style={{ flex: 1, background: "#F0F0F0", color: "#6B6B6B", border: "none", borderRadius: 0, padding: "8px", fontSize: 12, fontWeight: 700 }}
+                    >
+                      إلغاء
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {goal.target > 0 && (
+              <>
+              <div
+                style={{
+                  height: 7,
+                  background: "#F0F0F0",
+                  borderRadius: 0,
+                  marginTop: 10,
+                  overflow: "hidden",
+                }}
+              >
+                <div
+                  style={{
+                    width: `${goalPct}%`,
+                    height: "100%",
+                    background: "#5B8DEF",
+                    transition: "width 0.4s ease",
+                  }}
+                />
+              </div>
+
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8 }}>
+                <span style={{ fontSize: 11, color: "#6B6B6B" }}>
+                  جمعت {goal.saved.toLocaleString()} ر.س
+                </span>
+                <span
+                  style={{
+                    fontSize: 12.5,
+                    fontWeight: 800,
+                    color: "#111111",
+                    fontFamily: "'IBM Plex Mono', monospace",
+                  }}
+                >
+                  الباقي {goalRemaining.toLocaleString()} ر.س من {goal.target.toLocaleString()}
+                </span>
+              </div>
+
+              {goal.monthlyTarget > 0 && (
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                  <span style={{ fontSize: 10.5, color: "#5B8DEF" }}>
+                    التوفير الشهري المستهدف: {goal.monthlyTarget.toLocaleString()} ر.س
+                  </span>
+                  <span style={{ fontSize: 10.5, color: "#6B6B6B" }}>
+                    {goal.monthlyTarget > 0 && goalRemaining > 0
+                      ? `~${Math.ceil(goalRemaining / goal.monthlyTarget)} شهر للوصول`
+                      : ""}
+                  </span>
+                </div>
+              )}
+              </>
+              )}
+
+              {openGoal && goal.target > 0 && (
+                <>
+                  <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+                    <input
+                      type="number"
+                      placeholder="أضف مبلغ للهدف"
+                      value={contribInput}
+                      onChange={(e) => setContribInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && addContribution()}
+                      style={{
+                        flex: 1,
+                        border: "1px solid #CCCCCC",
+                        borderRadius: 0,
+                        padding: "6px 8px",
+                        fontSize: 12,
+                        fontFamily: "'IBM Plex Mono', monospace",
+                      }}
+                    />
+                    <button
+                      onClick={addContribution}
+                      style={{
+                        background: "#5B8DEF",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 0,
+                        padding: "6px 12px",
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                      }}
+                    >
+                      إضافة
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* المخطط البياني */}
+          <div style={{ padding: "10px 22px 0" }}>
+            <div
+              style={{
+                background: "#fff",
+                border: "1px solid #E5E5E5",
+                borderRadius: 0,
+                padding: "12px 14px",
+              }}
+            >
+              <button
+                onClick={() => setOpenChart((v) => !v)}
+                style={{
+                  width: "100%",
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: openChart ? 10 : 0,
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 11.5,
+                    color: "#6B6B6B",
+                    fontWeight: 600,
+                  }}
+                >
+                  مخطط الإنفاق
+                </span>
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span
+                    style={{
+                      fontSize: 12.5,
+                      fontWeight: 800,
+                      color: "#111111",
+                      fontFamily: "'IBM Plex Mono', monospace",
+                    }}
+                  >
+                    {total.toLocaleString()} ر.س
+                  </span>
+                  <ChevronDown
+                    size={16}
+                    color="#6B6B6B"
+                    style={{
+                      transform: openChart ? "rotate(180deg)" : "none",
+                      transition: "transform 0.2s ease",
+                    }}
+                  />
+                </span>
+              </button>
+
+              {openChart && (
+                <>
+              <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+                {[
+                  { key: "month", label: "هذا الشهر" },
+                  { key: "year", label: "هذه السنة" },
+                  { key: "ytd", label: "حتى هذا التاريخ" },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setChartTab(tab.key)}
+                    style={{
+                      flex: 1,
+                      background: chartTab === tab.key ? "#111111" : "#F0F0F0",
+                      color: chartTab === tab.key ? "#fff" : "#6B6B6B",
+                      border: "none",
+                      borderRadius: 0,
+                      padding: "6px 4px",
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {tab.label}
+                  </button>
+                ))}
+              </div>
+
+              <div style={{ height: 130 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  {chartTab === "ytd" ? (
+                    <LineChart data={ytdChartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                      <CartesianGrid stroke="#F0F0F0" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fontSize: 9, fill: "#6B6B6B" }} />
+                      <YAxis tick={{ fontSize: 9, fill: "#6B6B6B" }} />
+                      <Tooltip
+                        contentStyle={{ fontSize: 11, borderRadius: 0, border: "1px solid #E5E5E5" }}
+                        formatter={(v) => [`${v} ر.س`, "تراكمي"]}
+                      />
+                      <Line type="monotone" dataKey="amount" stroke="#5B8DEF" strokeWidth={1.5} dot={{ r: 2 }} />
+                    </LineChart>
+                  ) : (
+                    <BarChart
+                      layout="vertical"
+                      data={chartTab === "month" ? monthChartData : yearChartData}
+                      margin={{ top: 5, right: 16, left: 0, bottom: 0 }}
+                      barCategoryGap="30%"
+                    >
+                      <CartesianGrid stroke="#F0F0F0" horizontal={false} />
+                      <XAxis type="number" tick={{ fontSize: 9, fill: "#6B6B6B" }} />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        tick={{ fontSize: 9, fill: "#6B6B6B" }}
+                        width={58}
+                      />
+                      <Tooltip
+                        contentStyle={{ fontSize: 11, borderRadius: 0, border: "1px solid #E5E5E5" }}
+                        formatter={(v) => [`${v} ر.س`, "المصروف"]}
+                      />
+                      <Bar dataKey="amount" radius={0} barSize={11}>
+                        {(chartTab === "month" ? monthChartData : yearChartData).map((entry, i) => (
+                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  )}
+                </ResponsiveContainer>
+              </div>
+
+              {chartTab !== "month" && (
+                <div style={{ fontSize: 9.5, color: "#999999", marginTop: 4, textAlign: "center" }}>
+                  * بيانات الأشهر السابقة تقديرية — عدا شهر أغسطس الحالي فهو رقمك الفعلي
+                </div>
+              )}
+
+              {topCatEntry && (
+                <div
+                  style={{
+                    marginTop: 10,
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 6,
+                    background: "#FFF4D6",
+                    border: "1px solid #FFC93C",
+                    padding: "8px 10px",
+                    fontSize: 11,
+                    color: "#7A5A1E",
+                  }}
+                >
+                  <TrendingDown size={13} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <span>
+                    أكثر فئة صرف هذا الشهر هي{" "}
+                    <b>{CATS[topCatEntry[0]].label}</b> ({topCatEntry[1]} ر.س). لو قلّلتها 20%
+                    تقدر توفّر <b>{suggestedCut} ر.س</b>
+                    {goal.target > 0 ? " نحو هدفك." : "."}
+                  </span>
+                </div>
+              )}
+                </>
+              )}
+            </div>
+          </div>
+
+          <div style={{ padding: "0 22px" }}>
+            <Perforation />
+          </div>
+
+          {/* reminder banner */}
+          {missingPhoto.length > 0 && (
+            <div style={{ padding: "0 22px 4px" }}>
+              <div
+                style={{
+                  background: "#FFF4D6",
+                  border: "1.5px solid #FFC93C",
+                  borderRadius: 0,
+                  padding: "10px 12px",
+                  animation: "slideIn 0.3s ease",
+                }}
+              >
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: "#B8860B", marginBottom: 6 }}>
+                  عندك {missingPhoto.length} مصروف بدون صورة فاتورة
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  {missingPhoto.map((t) => (
+                    <div
+                      key={t.id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        fontSize: 12,
+                        color: "#111111",
+                      }}
+                    >
+                      <span>{t.label} · {t.amount} ر.س</span>
+                      <button
+                        onClick={() => attachPhoto(t.id)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                          background: "#FFC93C",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 0,
+                          padding: "4px 8px",
+                          fontSize: 11,
+                          fontWeight: 700,
+                        }}
+                      >
+                        <ImagePlus size={12} /> أرفق صورة
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* action buttons */}
+          <div style={{ padding: "8px 22px 0", display: "flex", gap: 8 }}>
+            <button
+              onClick={handleCapture}
+              disabled={scanning}
+              style={{
+                flex: 1.3,
+                position: "relative",
+                overflow: "hidden",
+                background: "#FF3B30",
+                color: "#fff",
+                border: "none",
+                borderRadius: 0,
+                padding: "11px 8px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 4,
+                animation: scanning ? "pulse 1.1s infinite" : "none",
+              }}
+            >
+              {scanning && (
+                <div
+                  style={{
+                    position: "absolute",
+                    left: 0,
+                    right: 0,
+                    height: 2,
+                    background: "rgba(255,255,255,0.85)",
+                    animation: "scanline 1.1s linear infinite",
+                  }}
+                />
+              )}
+              <Camera size={17} />
+              <span style={{ fontSize: 11.5, fontWeight: 700 }}>
+                {scanning ? "جارٍ القراءة..." : "صوّر فاتورة"}
+              </span>
+            </button>
+
+            <button
+              onClick={handleVoice}
+              style={{
+                flex: 1,
+                background: recording ? "#FF3B30" : "#00B37E",
+                color: "#fff",
+                border: "none",
+                borderRadius: 0,
+                padding: "11px 8px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 4,
+                animation: recording ? "pulse 1s infinite" : "none",
+              }}
+            >
+              <Mic size={17} />
+              <span style={{ fontSize: 11.5, fontWeight: 700 }}>
+                {recording ? "اضغط للإيقاف" : "تسجيل صوتي"}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setShowManualAdd((v) => !v)}
+              style={{
+                flex: 0.85,
+                background: showManualAdd ? "#111111" : "#F0F0F0",
+                color: showManualAdd ? "#fff" : "#6B6B6B",
+                border: "none",
+                borderRadius: 0,
+                padding: "11px 6px",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 4,
+              }}
+            >
+              <Plus size={17} />
+              <span style={{ fontSize: 11.5, fontWeight: 700 }}>إضافة يدوية</span>
+            </button>
+          </div>
+
+          {showManualAdd && (
+            <div style={{ padding: "8px 22px 0" }}>
+              <div
+                style={{
+                  background: "#fff",
+                  border: "1px solid #E5E5E5",
+                  borderRadius: 0,
+                  padding: 12,
+                }}
+              >
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <input
+                    placeholder="الاسم (مثال: بقالة)"
+                    value={manualLabel}
+                    onChange={(e) => setManualLabel(e.target.value)}
+                    style={inputStyle}
+                  />
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      placeholder="المبلغ"
+                      type="number"
+                      value={manualAmount}
+                      onChange={(e) => setManualAmount(e.target.value)}
+                      style={{ ...inputStyle, flex: 1 }}
+                    />
+                    <select
+                      value={manualCat}
+                      onChange={(e) => setManualCat(e.target.value)}
+                      style={{ ...inputStyle, flex: 1 }}
+                    >
+                      {CAT_KEYS.map((k) => (
+                        <option key={k} value={k}>
+                          {CATS[k].label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <input
+                    list="place-suggestions"
+                    placeholder="مكان الصرف (اختياري)"
+                    value={manualPlace}
+                    onChange={(e) => setManualPlace(e.target.value)}
+                    style={inputStyle}
+                  />
+                  <button
+                    onClick={addManualTxn}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                      background: "#111111",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 0,
+                      padding: "9px",
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                    }}
+                  >
+                    <Plus size={14} /> إضافة المصروف
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {micError && (
+            <div style={{ padding: "6px 22px 0" }}>
+              <div
+                style={{
+                  background: "#FFE5E3",
+                  border: "1px solid #FFB3AD",
+                  padding: "8px 10px",
+                  fontSize: 11.5,
+                  color: "#B23A2E",
+                  fontWeight: 600,
+                }}
+              >
+                {micError}
+              </div>
+            </div>
+          )}
+
+          <div style={{ padding: "0 22px" }}>
+            <Perforation />
+          </div>
+
+          {/* transaction list */}
+          <div style={{ padding: "0 22px 20px" }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: "#6B6B6B", marginBottom: 8 }}>
+              آخر المصاريف
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {txns.map((t) =>
+                editingTxnId === t.id ? (
+                  <div
+                    key={t.id}
+                    style={{
+                      background: "#FFF9EC",
+                      border: "1px solid #FFC93C",
+                      borderRadius: 0,
+                      padding: "10px 12px",
+                    }}
+                  >
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      <input
+                        value={editTxnLabel}
+                        onChange={(e) => setEditTxnLabel(e.target.value)}
+                        placeholder="الاسم"
+                        style={inputStyle}
+                      />
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <input
+                          type="number"
+                          value={editTxnAmount}
+                          onChange={(e) => setEditTxnAmount(e.target.value)}
+                          placeholder="المبلغ"
+                          style={{ ...inputStyle, flex: 1 }}
+                        />
+                        <select
+                          value={editTxnCat}
+                          onChange={(e) => setEditTxnCat(e.target.value)}
+                          style={{ ...inputStyle, flex: 1 }}
+                        >
+                          {CAT_KEYS.map((k) => (
+                            <option key={k} value={k}>
+                              {CATS[k].label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <button
+                          onClick={() => saveEditTxn(t.id)}
+                          style={{ flex: 1, background: "#111111", color: "#fff", border: "none", borderRadius: 0, padding: "7px", fontSize: 12, fontWeight: 700 }}
+                        >
+                          حفظ
+                        </button>
+                        <button
+                          onClick={() => setEditingTxnId(null)}
+                          style={{ flex: 1, background: "#F0F0F0", color: "#6B6B6B", border: "none", borderRadius: 0, padding: "7px", fontSize: 12, fontWeight: 700 }}
+                        >
+                          إلغاء
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                <div
+                  key={t.id}
+                  style={{
+                    background: "#fff",
+                    border: "1px solid #E5E5E5",
+                    borderRadius: 0,
+                    padding: "7px 10px",
+                    animation: "slideIn 0.25s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+                      <span style={{ fontSize: 12.5, fontWeight: 600, color: "#111111" }}>
+                        {t.label}
+                      </span>
+                      <Stamp catKey={t.cat} />
+                      {t.date && (
+                        <span
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 3,
+                            fontSize: 9.5,
+                            color: "#999999",
+                          }}
+                        >
+                          <Calendar size={9} /> {t.date}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <div style={{ textAlign: "left" }}>
+                        <div
+                          style={{
+                            fontFamily: "'IBM Plex Mono', monospace",
+                            fontWeight: 700,
+                            fontSize: 13,
+                            color: "#111111",
+                          }}
+                        >
+                          {t.amount} ر.س
+                        </div>
+                        {t.hasPhoto ? (
+                          <span
+                            style={{
+                              fontSize: 9,
+                              color: "#00B37E",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 2,
+                              justifyContent: "flex-end",
+                              border: "1px solid #00B37E",
+                              padding: "1px 4px",
+                              marginTop: 2,
+                            }}
+                          >
+                            <Check size={9} /> فاتورة
+                          </span>
+                        ) : (
+                          <span
+                            style={{
+                              fontSize: 9,
+                              color: "#FFC93C",
+                              display: "inline-block",
+                              border: "1px solid #FFC93C",
+                              padding: "1px 4px",
+                              marginTop: 2,
+                            }}
+                          >
+                            بدون صورة
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => startEditTxn(t)}
+                        style={{ background: "none", border: "1px solid #E5E5E5", borderRadius: 0, padding: 4, display: "flex" }}
+                      >
+                        <Pencil size={11} color="#6B6B6B" />
+                      </button>
+                      <button
+                        onClick={() => deleteTxn(t.id)}
+                        style={{ background: "none", border: "1px solid #FFB3AD", borderRadius: 0, padding: 4, display: "flex" }}
+                      >
+                        <X size={11} color="#FF3B30" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* التسجيل الصوتي المرفق */}
+                  {t.audioUrl && (
+                    <div style={{ marginTop: 6 }}>
+                      <audio
+                        controls
+                        src={t.audioUrl}
+                        style={{ width: "100%", height: 28 }}
+                      />
+                    </div>
+                  )}
+
+                  {/* مكان الصرف */}
+                  {editingPlaceId === t.id ? (
+                    <div style={{ display: "flex", gap: 6, marginTop: 6, alignItems: "center" }}>
+                      <input
+                        autoFocus
+                        list="place-suggestions"
+                        placeholder="سوق الخضار، مول كذا، مدرسة الابن..."
+                        value={placeInput}
+                        onChange={(e) => setPlaceInput(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && savePlace(t.id)}
+                        style={{
+                          flex: 1,
+                          border: "1px solid #CCCCCC",
+                          borderRadius: 0,
+                          padding: "5px 8px",
+                          fontSize: 11.5,
+                          fontFamily: "'Cairo', sans-serif",
+                          outline: "none",
+                        }}
+                      />
+                      <button
+                        onClick={() => savePlace(t.id)}
+                        style={{
+                          background: "#111111",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 0,
+                          padding: "5px 9px",
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                        }}
+                      >
+                        حفظ
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setEditingPlaceId(t.id);
+                        setPlaceInput(t.place || "");
+                      }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        background: "none",
+                        border: "none",
+                        padding: 0,
+                        marginTop: 5,
+                        fontSize: 11,
+                        color: t.place ? "#5B8DEF" : "#999999",
+                        fontWeight: t.place ? 700 : 400,
+                      }}
+                    >
+                      <MapPin size={11} />
+                      {t.place || "أضف مكان الصرف"}
+                    </button>
+                  )}
+                </div>
+                )
+              )}
+            </div>
+          </div>
+
+          <datalist id="place-suggestions">
+            {PLACE_SUGGESTIONS.map((p) => (
+              <option key={p} value={p} />
+            ))}
+          </datalist>
+
+          </div>
+
+          {/* toast */}
+          {flash && (
+            <div
+              style={{
+                position: "absolute",
+                bottom: 16,
+                left: "50%",
+                background: "#111111",
+                color: "#fff",
+                padding: "8px 16px",
+                borderRadius: 0,
+                fontSize: 12.5,
+                fontWeight: 600,
+                animation: "toastIn 1.6s ease forwards",
+              }}
+            >
+              {flash === "photo" ? "تمت إضافة المصروف من الفاتورة ✓" : "تم تسجيل المصروف صوتياً ✓"}
+            </div>
+          )}
+
+          {/* recurring expenses panel */}
+          {showRecurring && (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: "#FFFFFF",
+                display: "flex",
+                flexDirection: "column",
+                animation: "slideIn 0.2s ease",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "16px 20px 6px",
+                }}
+              >
+                <div style={{ fontSize: 16, fontWeight: 800, color: "#111111" }}>
+                  {recurringFilter === "overdue" ? "المتأخرة عن الدفع" : "المصاريف الثابتة"}
+                </div>
+                <button
+                  onClick={() => setShowRecurring(false)}
+                  style={{
+                    background: "#fff",
+                    border: "1px solid #E5E5E5",
+                    borderRadius: 0,
+                    padding: 6,
+                    display: "flex",
+                  }}
+                >
+                  <X size={16} color="#111111" />
+                </button>
+              </div>
+
+              <div style={{ padding: "0 20px", overflowY: "auto", flex: 1 }}>
+                {overdue.length > 0 && (
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: "#FF3B30", margin: "6px 0" }}>
+                    متأخرة عن الدفع
+                  </div>
+                )}
+                {overdue.map((r) => (
+                  <RecurringRow
+                    key={r.id}
+                    r={r}
+                    overdue
+                    onPay={markPaid}
+                    onDelete={deleteRecurring}
+                    isEditing={editingRecId === r.id}
+                    onStartEdit={startEditRecurring}
+                    onCancelEdit={() => setEditingRecId(null)}
+                    onSaveEdit={saveEditRecurring}
+                    editLabel={editRecLabel}
+                    setEditLabel={setEditRecLabel}
+                    editAmount={editRecAmount}
+                    setEditAmount={setEditRecAmount}
+                    editCat={editRecCat}
+                    setEditCat={setEditRecCat}
+                    editFrequency={editRecFrequency}
+                    setEditFrequency={setEditRecFrequency}
+                    editDay={editRecDay}
+                    setEditDay={setEditRecDay}
+                    editMonth={editRecMonth}
+                    setEditMonth={setEditRecMonth}
+                    editNote={editRecNote}
+                    setEditNote={setEditRecNote}
+                  />
+                ))}
+
+                {overdue.length === 0 && recurringFilter === "overdue" && (
+                  <div style={{ fontSize: 12.5, color: "#6B6B6B", textAlign: "center", margin: "24px 0" }}>
+                    لا توجد مصاريف متأخرة 🎉
+                  </div>
+                )}
+
+                {recurringFilter !== "overdue" && upcoming.length > 0 && (
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: "#6B6B6B", margin: "12px 0 6px" }}>
+                    قادمة
+                  </div>
+                )}
+                {recurringFilter !== "overdue" && upcoming.map((r) => (
+                  <RecurringRow
+                    key={r.id}
+                    r={r}
+                    onPay={markPaid}
+                    onDelete={deleteRecurring}
+                    isEditing={editingRecId === r.id}
+                    onStartEdit={startEditRecurring}
+                    onCancelEdit={() => setEditingRecId(null)}
+                    onSaveEdit={saveEditRecurring}
+                    editLabel={editRecLabel}
+                    setEditLabel={setEditRecLabel}
+                    editAmount={editRecAmount}
+                    setEditAmount={setEditRecAmount}
+                    editCat={editRecCat}
+                    setEditCat={setEditRecCat}
+                    editFrequency={editRecFrequency}
+                    setEditFrequency={setEditRecFrequency}
+                    editDay={editRecDay}
+                    setEditDay={setEditRecDay}
+                    editMonth={editRecMonth}
+                    setEditMonth={setEditRecMonth}
+                    editNote={editRecNote}
+                    setEditNote={setEditRecNote}
+                  />
+                ))}
+
+                {recurringFilter !== "overdue" && recurring.some((r) => r.paid) && (
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: "#6B6B6B", margin: "12px 0 6px" }}>
+                    مدفوعة هذا الشهر
+                  </div>
+                )}
+                {recurringFilter !== "overdue" && recurring
+                  .filter((r) => r.paid)
+                  .map((r) => (
+                    <RecurringRow
+                      key={r.id}
+                      r={r}
+                      paid
+                      onPay={markPaid}
+                      onDelete={deleteRecurring}
+                      isEditing={editingRecId === r.id}
+                      onStartEdit={startEditRecurring}
+                      onCancelEdit={() => setEditingRecId(null)}
+                      onSaveEdit={saveEditRecurring}
+                      editLabel={editRecLabel}
+                      setEditLabel={setEditRecLabel}
+                      editAmount={editRecAmount}
+                      setEditAmount={setEditRecAmount}
+                      editCat={editRecCat}
+                      setEditCat={setEditRecCat}
+                      editFrequency={editRecFrequency}
+                      setEditFrequency={setEditRecFrequency}
+                      editDay={editRecDay}
+                      setEditDay={setEditRecDay}
+                      editMonth={editRecMonth}
+                      setEditMonth={setEditRecMonth}
+                      editNote={editRecNote}
+                      setEditNote={setEditRecNote}
+                    />
+                  ))}
+
+                {recurringFilter !== "overdue" && (
+                <div
+                  style={{
+                    marginTop: 16,
+                  }}
+                >
+                  {!showAddRecurring ? (
+                    <button
+                      onClick={() => setShowAddRecurring(true)}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        background: "#111111",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 0,
+                        padding: "10px",
+                        fontSize: 13,
+                        fontWeight: 700,
+                      }}
+                    >
+                      <Plus size={15} /> إضافة مصروف ثابت جديد
+                    </button>
+                  ) : (
+                  <div
+                    style={{
+                      background: "#fff",
+                      border: "1px solid #E5E5E5",
+                      borderRadius: 0,
+                      padding: 14,
+                    }}
+                  >
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: "#111111", marginBottom: 10 }}>
+                    إضافة مصروف ثابت جديد
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <input
+                      placeholder="الاسم (مثال: إيجار)"
+                      value={newLabel}
+                      onChange={(e) => setNewLabel(e.target.value)}
+                      style={inputStyle}
+                    />
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input
+                        placeholder="المبلغ"
+                        type="number"
+                        value={newAmount}
+                        onChange={(e) => setNewAmount(e.target.value)}
+                        style={{ ...inputStyle, flex: 1 }}
+                      />
+                      <select
+                        value={newCat}
+                        onChange={(e) => setNewCat(e.target.value)}
+                        style={{ ...inputStyle, flex: 1 }}
+                      >
+                        {CAT_KEYS.map((k) => (
+                          <option key={k} value={k}>
+                            {CATS[k].label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div style={{ fontSize: 11, color: "#6B6B6B", marginTop: 2 }}>نوع الاستحقاق</div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      {[
+                        { key: "monthly", label: "شهري" },
+                        { key: "yearly", label: "سنوي" },
+                        { key: "other", label: "أخرى" },
+                      ].map((f) => (
+                        <button
+                          key={f.key}
+                          onClick={() => setNewFrequency(f.key)}
+                          style={{
+                            flex: 1,
+                            background: newFrequency === f.key ? "#111111" : "#F0F0F0",
+                            color: newFrequency === f.key ? "#fff" : "#6B6B6B",
+                            border: "none",
+                            borderRadius: 0,
+                            padding: "7px 4px",
+                            fontSize: 11,
+                            fontWeight: 700,
+                          }}
+                        >
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {newFrequency === "monthly" && (
+                      <input
+                        placeholder="يوم الاستحقاق (1-31)"
+                        type="number"
+                        min={1}
+                        max={31}
+                        value={newDay}
+                        onChange={(e) => setNewDay(e.target.value)}
+                        style={inputStyle}
+                      />
+                    )}
+                    {newFrequency === "yearly" && (
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <input
+                          placeholder="اليوم"
+                          type="number"
+                          min={1}
+                          max={31}
+                          value={newDay}
+                          onChange={(e) => setNewDay(e.target.value)}
+                          style={{ ...inputStyle, flex: 1 }}
+                        />
+                        <select
+                          value={newMonth}
+                          onChange={(e) => setNewMonth(e.target.value)}
+                          style={{ ...inputStyle, flex: 1.4 }}
+                        >
+                          {MONTH_NAMES.map((m, i) => (
+                            <option key={m} value={i + 1}>
+                              {m}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    {newFrequency === "other" && (
+                      <input
+                        placeholder="مثال: كل 3 أشهر"
+                        value={newNote}
+                        onChange={(e) => setNewNote(e.target.value)}
+                        style={inputStyle}
+                      />
+                    )}
+
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button
+                        onClick={addRecurring}
+                        style={{
+                          flex: 1,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 6,
+                          background: "#111111",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 0,
+                          padding: "10px",
+                          fontSize: 13,
+                          fontWeight: 700,
+                        }}
+                      >
+                        <Plus size={15} /> إضافة
+                      </button>
+                      <button
+                        onClick={() => setShowAddRecurring(false)}
+                        style={{
+                          flex: 1,
+                          background: "#F0F0F0",
+                          color: "#6B6B6B",
+                          border: "none",
+                          borderRadius: 0,
+                          padding: "10px",
+                          fontSize: 13,
+                          fontWeight: 700,
+                        }}
+                      >
+                        إلغاء
+                      </button>
+                    </div>
+                  </div>
+                  </div>
+                  )}
+                </div>
+                )}
+                <div style={{ height: 20 }} />
+              </div>
+            </div>
+          )}
+
+          {/* الديون الشخصية panel */}
+          {showDebts && (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: "#FFFFFF",
+                display: "flex",
+                flexDirection: "column",
+                animation: "slideIn 0.2s ease",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "16px 20px 6px",
+                }}
+              >
+                <div style={{ fontSize: 16, fontWeight: 800, color: "#111111" }}>
+                  الديون الشخصية
+                </div>
+                <button
+                  onClick={() => setShowDebts(false)}
+                  style={{
+                    background: "#fff",
+                    border: "1px solid #E5E5E5",
+                    borderRadius: 0,
+                    padding: 6,
+                    display: "flex",
+                  }}
+                >
+                  <X size={16} color="#111111" />
+                </button>
+              </div>
+
+              <div style={{ padding: "0 20px", overflowY: "auto", flex: 1 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    margin: "6px 0 14px",
+                  }}
+                >
+                  <div style={{ flex: 1, background: "#FFE5E3", border: "1px solid #FFB3AD", padding: "10px" }}>
+                    <div style={{ fontSize: 10.5, color: "#B23A2E", fontWeight: 700 }}>عليّ (لهم)</div>
+                    <div
+                      style={{
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontWeight: 800,
+                        fontSize: 16,
+                        color: "#B23A2E",
+                      }}
+                    >
+                      {totalIOwe.toLocaleString()} ر.س
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, background: "#E4F7EF", border: "1px solid #9EE3C6", padding: "10px" }}>
+                    <div style={{ fontSize: 10.5, color: "#00734D", fontWeight: 700 }}>لي (منهم)</div>
+                    <div
+                      style={{
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontWeight: 800,
+                        fontSize: 16,
+                        color: "#00734D",
+                      }}
+                    >
+                      {totalOwedToMe.toLocaleString()} ر.س
+                    </div>
+                  </div>
+                </div>
+
+                {owedByMe.length > 0 && (
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: "#B23A2E", margin: "6px 0" }}>
+                    مستحقة عليّ
+                  </div>
+                )}
+                {owedByMe.map((d) => (
+                  <DebtRow
+                    key={d.id}
+                    d={d}
+                    onSettle={settleDebt}
+                    onDelete={deleteDebt}
+                    isEditing={editingDebtId === d.id}
+                    onStartEdit={startEditDebt}
+                    onCancelEdit={() => setEditingDebtId(null)}
+                    onSaveEdit={saveEditDebt}
+                    editPerson={editDebtPerson}
+                    setEditPerson={setEditDebtPerson}
+                    editAmount={editDebtAmount}
+                    setEditAmount={setEditDebtAmount}
+                    editDirection={editDebtDirection}
+                    setEditDirection={setEditDebtDirection}
+                  />
+                ))}
+
+                {owedToMe.length > 0 && (
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: "#00734D", margin: "12px 0 6px" }}>
+                    مستحقة لي
+                  </div>
+                )}
+                {owedToMe.map((d) => (
+                  <DebtRow
+                    key={d.id}
+                    d={d}
+                    onSettle={settleDebt}
+                    onDelete={deleteDebt}
+                    isEditing={editingDebtId === d.id}
+                    onStartEdit={startEditDebt}
+                    onCancelEdit={() => setEditingDebtId(null)}
+                    onSaveEdit={saveEditDebt}
+                    editPerson={editDebtPerson}
+                    setEditPerson={setEditDebtPerson}
+                    editAmount={editDebtAmount}
+                    setEditAmount={setEditDebtAmount}
+                    editDirection={editDebtDirection}
+                    setEditDirection={setEditDebtDirection}
+                  />
+                ))}
+
+                {debts.some((d) => d.settled) && (
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: "#6B6B6B", margin: "12px 0 6px" }}>
+                    مسدّدة
+                  </div>
+                )}
+                {debts
+                  .filter((d) => d.settled)
+                  .map((d) => (
+                    <DebtRow key={d.id} d={d} settled onSettle={settleDebt} onDelete={deleteDebt} />
+                  ))}
+
+                <div style={{ marginTop: 16 }}>
+                  {!showAddDebt ? (
+                    <button
+                      onClick={() => setShowAddDebt(true)}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        background: "#111111",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 0,
+                        padding: "10px",
+                        fontSize: 13,
+                        fontWeight: 700,
+                      }}
+                    >
+                      <Plus size={15} /> إضافة دين جديد
+                    </button>
+                  ) : (
+                  <div
+                    style={{
+                      background: "#fff",
+                      border: "1px solid #E5E5E5",
+                      borderRadius: 0,
+                      padding: 14,
+                    }}
+                  >
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: "#111111", marginBottom: 10 }}>
+                    إضافة دين جديد
+                  </div>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                    <button
+                      onClick={() => setDebtDirection("owe")}
+                      style={{
+                        flex: 1,
+                        background: debtDirection === "owe" ? "#FF3B30" : "#F0F0F0",
+                        color: debtDirection === "owe" ? "#fff" : "#6B6B6B",
+                        border: "none",
+                        borderRadius: 0,
+                        padding: "8px",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 4,
+                      }}
+                    >
+                      <ArrowUpRight size={13} /> أنا مدين
+                    </button>
+                    <button
+                      onClick={() => setDebtDirection("owed")}
+                      style={{
+                        flex: 1,
+                        background: debtDirection === "owed" ? "#00B37E" : "#F0F0F0",
+                        color: debtDirection === "owed" ? "#fff" : "#6B6B6B",
+                        border: "none",
+                        borderRadius: 0,
+                        padding: "8px",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 4,
+                      }}
+                    >
+                      <ArrowDownRight size={13} /> لي عندهم
+                    </button>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <input
+                      placeholder="اسم الشخص"
+                      value={debtPerson}
+                      onChange={(e) => setDebtPerson(e.target.value)}
+                      style={inputStyle}
+                    />
+                    <input
+                      placeholder="المبلغ"
+                      type="number"
+                      value={debtAmount}
+                      onChange={(e) => setDebtAmount(e.target.value)}
+                      style={inputStyle}
+                    />
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button
+                        onClick={addDebt}
+                        style={{
+                          flex: 1,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 6,
+                          background: "#111111",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 0,
+                          padding: "10px",
+                          fontSize: 13,
+                          fontWeight: 700,
+                        }}
+                      >
+                        <Plus size={15} /> إضافة
+                      </button>
+                      <button
+                        onClick={() => setShowAddDebt(false)}
+                        style={{
+                          flex: 1,
+                          background: "#F0F0F0",
+                          color: "#6B6B6B",
+                          border: "none",
+                          borderRadius: 0,
+                          padding: "10px",
+                          fontSize: 13,
+                          fontWeight: 700,
+                        }}
+                      >
+                        إلغاء
+                      </button>
+                    </div>
+                  </div>
+                  </div>
+                  )}
+                </div>
+                <div style={{ height: 20 }} />
+              </div>
+            </div>
+          )}
+
+          {/* لوحة القروض وبطاقات الائتمان */}
+          {showLoans && (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                background: "#FFFFFF",
+                display: "flex",
+                flexDirection: "column",
+                animation: "slideIn 0.2s ease",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "16px 20px 6px",
+                }}
+              >
+                <div style={{ fontSize: 16, fontWeight: 800, color: "#111111" }}>
+                  قروض وبطاقات ائتمان
+                </div>
+                <button
+                  onClick={() => setShowLoans(false)}
+                  style={{
+                    background: "#fff",
+                    border: "1px solid #E5E5E5",
+                    borderRadius: 0,
+                    padding: 6,
+                    display: "flex",
+                  }}
+                >
+                  <X size={16} color="#111111" />
+                </button>
+              </div>
+
+              <div style={{ padding: "0 20px", overflowY: "auto", flex: 1 }}>
+                <div style={{ display: "flex", gap: 8, margin: "6px 0 14px" }}>
+                  <div style={{ flex: 1, background: "#F5F8FF", border: "1px solid #C9D9FA", padding: "10px" }}>
+                    <div style={{ fontSize: 10.5, color: "#3A5A9B", fontWeight: 700 }}>إجمالي القسط الشهري</div>
+                    <div
+                      style={{
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontWeight: 800,
+                        fontSize: 16,
+                        color: "#3A5A9B",
+                      }}
+                    >
+                      {loansMonthlyTotal.toLocaleString()} ر.س
+                    </div>
+                  </div>
+                  <div style={{ flex: 1, background: "#F0F0F0", border: "1px solid #E5E5E5", padding: "10px" }}>
+                    <div style={{ fontSize: 10.5, color: "#6B6B6B", fontWeight: 700 }}>إجمالي المتبقي</div>
+                    <div
+                      style={{
+                        fontFamily: "'IBM Plex Mono', monospace",
+                        fontWeight: 800,
+                        fontSize: 16,
+                        color: "#111111",
+                      }}
+                    >
+                      {loansOutstandingTotal.toLocaleString()} ر.س
+                    </div>
+                  </div>
+                </div>
+
+                {loans.filter((l) => !l.paid).length > 0 && (
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: "#6B6B6B", margin: "6px 0" }}>
+                    لم يُدفع قسطها هذا الشهر
+                  </div>
+                )}
+                {loans
+                  .filter((l) => !l.paid)
+                  .map((l) => (
+                    <LoanRow
+                      key={l.id}
+                      l={l}
+                      onPay={payLoan}
+                      onDelete={deleteLoan}
+                      isEditing={editingLoanId === l.id}
+                      onStartEdit={startEditLoan}
+                      onCancelEdit={() => setEditingLoanId(null)}
+                      onSaveEdit={saveEditLoan}
+                      editBank={editLoanBank}
+                      setEditBank={setEditLoanBank}
+                      editAmount={editLoanAmount}
+                      setEditAmount={setEditLoanAmount}
+                      editMonthly={editLoanMonthly}
+                      setEditMonthly={setEditLoanMonthly}
+                      editDay={editLoanDay}
+                      setEditDay={setEditLoanDay}
+                    />
+                  ))}
+
+                {loans.filter((l) => l.paid).length > 0 && (
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: "#00734D", margin: "12px 0 6px" }}>
+                    تم دفع قسطها هذا الشهر
+                  </div>
+                )}
+                {loans
+                  .filter((l) => l.paid)
+                  .map((l) => (
+                    <LoanRow
+                      key={l.id}
+                      l={l}
+                      paid
+                      onPay={payLoan}
+                      onDelete={deleteLoan}
+                      isEditing={editingLoanId === l.id}
+                      onStartEdit={startEditLoan}
+                      onCancelEdit={() => setEditingLoanId(null)}
+                      onSaveEdit={saveEditLoan}
+                      editBank={editLoanBank}
+                      setEditBank={setEditLoanBank}
+                      editAmount={editLoanAmount}
+                      setEditAmount={setEditLoanAmount}
+                      editMonthly={editLoanMonthly}
+                      setEditMonthly={setEditLoanMonthly}
+                      editDay={editLoanDay}
+                      setEditDay={setEditLoanDay}
+                    />
+                  ))}
+
+                <div style={{ marginTop: 16 }}>
+                  {!showAddLoan ? (
+                    <button
+                      onClick={() => setShowAddLoan(true)}
+                      style={{
+                        width: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 6,
+                        background: "#111111",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 0,
+                        padding: "10px",
+                        fontSize: 13,
+                        fontWeight: 700,
+                      }}
+                    >
+                      <Plus size={15} /> إضافة قرض أو بطاقة جديدة
+                    </button>
+                  ) : (
+                  <div
+                    style={{
+                      background: "#fff",
+                      border: "1px solid #E5E5E5",
+                      borderRadius: 0,
+                      padding: 14,
+                    }}
+                  >
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: "#111111", marginBottom: 10 }}>
+                    إضافة قرض أو بطاقة جديدة
+                  </div>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                    <button
+                      onClick={() => setLoanType("loan")}
+                      style={{
+                        flex: 1,
+                        background: loanType === "loan" ? "#111111" : "#F0F0F0",
+                        color: loanType === "loan" ? "#fff" : "#6B6B6B",
+                        border: "none",
+                        borderRadius: 0,
+                        padding: "8px",
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      قرض
+                    </button>
+                    <button
+                      onClick={() => setLoanType("card")}
+                      style={{
+                        flex: 1,
+                        background: loanType === "card" ? "#111111" : "#F0F0F0",
+                        color: loanType === "card" ? "#fff" : "#6B6B6B",
+                        border: "none",
+                        borderRadius: 0,
+                        padding: "8px",
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
+                    >
+                      بطاقة ائتمان
+                    </button>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <input
+                      placeholder="اسم البنك (مثال: البنك الأهلي)"
+                      value={loanBank}
+                      onChange={(e) => setLoanBank(e.target.value)}
+                      style={inputStyle}
+                    />
+                    <input
+                      placeholder={loanType === "loan" ? "المبلغ المتبقي من القرض" : "المبلغ المستخدم من البطاقة"}
+                      type="number"
+                      value={loanAmount}
+                      onChange={(e) => setLoanAmount(e.target.value)}
+                      style={inputStyle}
+                    />
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input
+                        placeholder="القسط/الحد الأدنى الشهري"
+                        type="number"
+                        value={loanMonthly}
+                        onChange={(e) => setLoanMonthly(e.target.value)}
+                        style={{ ...inputStyle, flex: 1 }}
+                      />
+                      <input
+                        placeholder="يوم الاستحقاق (1-31)"
+                        type="number"
+                        min={1}
+                        max={31}
+                        value={loanDay}
+                        onChange={(e) => setLoanDay(e.target.value)}
+                        style={{ ...inputStyle, flex: 1 }}
+                      />
+                    </div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                      <button
+                        onClick={addLoan}
+                        style={{
+                          flex: 1,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 6,
+                          background: "#111111",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 0,
+                          padding: "10px",
+                          fontSize: 13,
+                          fontWeight: 700,
+                        }}
+                      >
+                        <Plus size={15} /> إضافة
+                      </button>
+                      <button
+                        onClick={() => setShowAddLoan(false)}
+                        style={{
+                          flex: 1,
+                          background: "#F0F0F0",
+                          color: "#6B6B6B",
+                          border: "none",
+                          borderRadius: 0,
+                          padding: "10px",
+                          fontSize: 13,
+                          fontWeight: 700,
+                        }}
+                      >
+                        إلغاء
+                      </button>
+                    </div>
+                  </div>
+                  </div>
+                  )}
+                </div>
+                <div style={{ height: 20 }} />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const inputStyle = {
+  border: "1px solid #E5E5E5",
+  borderRadius: 0,
+  padding: "9px 10px",
+  fontSize: 13,
+  fontFamily: "'Cairo', sans-serif",
+  outline: "none",
+  background: "#FFFFFF",
+};
+
+function DebtRow({
+  d,
+  settled,
+  onSettle,
+  onDelete,
+  isEditing,
+  onStartEdit,
+  onCancelEdit,
+  onSaveEdit,
+  editPerson,
+  setEditPerson,
+  editAmount,
+  setEditAmount,
+  editDirection,
+  setEditDirection,
+}) {
+  const isOwe = d.direction === "owe";
+  const color = settled ? "#6B6B6B" : isOwe ? "#B23A2E" : "#00734D";
+  const bg = settled ? "#F0F0F0" : isOwe ? "#FFE5E3" : "#E4F7EF";
+  const border = settled ? "#E5E5E5" : isOwe ? "#FFB3AD" : "#9EE3C6";
+
+  if (isEditing) {
+    return (
+      <div
+        style={{
+          background: "#FFF9EC",
+          border: "1px solid #FFC93C",
+          borderRadius: 0,
+          padding: "10px 12px",
+          marginBottom: 8,
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              onClick={() => setEditDirection("owe")}
+              style={{
+                flex: 1,
+                background: editDirection === "owe" ? "#FF3B30" : "#F0F0F0",
+                color: editDirection === "owe" ? "#fff" : "#6B6B6B",
+                border: "none",
+                borderRadius: 0,
+                padding: "7px",
+                fontSize: 11.5,
+                fontWeight: 700,
+              }}
+            >
+              أنا مدين
+            </button>
+            <button
+              onClick={() => setEditDirection("owed")}
+              style={{
+                flex: 1,
+                background: editDirection === "owed" ? "#00B37E" : "#F0F0F0",
+                color: editDirection === "owed" ? "#fff" : "#6B6B6B",
+                border: "none",
+                borderRadius: 0,
+                padding: "7px",
+                fontSize: 11.5,
+                fontWeight: 700,
+              }}
+            >
+              لي عندهم
+            </button>
+          </div>
+          <input value={editPerson} onChange={(e) => setEditPerson(e.target.value)} placeholder="اسم الشخص" style={inputStyle} />
+          <input
+            type="number"
+            value={editAmount}
+            onChange={(e) => setEditAmount(e.target.value)}
+            placeholder="المبلغ"
+            style={inputStyle}
+          />
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              onClick={() => onSaveEdit(d.id)}
+              style={{ flex: 1, background: "#111111", color: "#fff", border: "none", borderRadius: 0, padding: "8px", fontSize: 12, fontWeight: 700 }}
+            >
+              حفظ
+            </button>
+            <button
+              onClick={onCancelEdit}
+              style={{ flex: 1, background: "#F0F0F0", color: "#6B6B6B", border: "none", borderRadius: 0, padding: "8px", fontSize: 12, fontWeight: 700 }}
+            >
+              إلغاء
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        background: bg,
+        border: `1px solid ${border}`,
+        borderRadius: 0,
+        padding: "10px 12px",
+        marginBottom: 8,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {isOwe ? <ArrowUpRight size={16} color={color} /> : <ArrowDownRight size={16} color={color} />}
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#111111" }}>{d.person}</div>
+          <div style={{ fontSize: 11, color }}>
+            {settled ? "تم التسديد" : isOwe ? "أنا مدين له" : "له عندي دين"}
+          </div>
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, fontSize: 13, color }}>
+          {d.amount.toLocaleString()} ر.س
+        </span>
+        {!settled && (
+          <button
+            onClick={() => onSettle(d.id)}
+            style={{
+              background: color,
+              color: "#fff",
+              border: "none",
+              borderRadius: 0,
+              padding: "5px 8px",
+              fontSize: 11,
+              fontWeight: 700,
+            }}
+          >
+            سُدد
+          </button>
+        )}
+        {!settled && (
+          <button
+            onClick={() => onStartEdit(d)}
+            style={{ background: "none", border: "1px solid #E5E5E5", borderRadius: 0, padding: 5, display: "flex" }}
+          >
+            <Pencil size={12} color="#6B6B6B" />
+          </button>
+        )}
+        <button
+          onClick={() => onDelete(d.id)}
+          style={{ background: "none", border: "1px solid #FFB3AD", borderRadius: 0, padding: 5, display: "flex" }}
+        >
+          <X size={12} color="#FF3B30" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function LoanRow({
+  l,
+  paid,
+  onPay,
+  onDelete,
+  isEditing,
+  onStartEdit,
+  onCancelEdit,
+  onSaveEdit,
+  editBank,
+  setEditBank,
+  editAmount,
+  setEditAmount,
+  editMonthly,
+  setEditMonthly,
+  editDay,
+  setEditDay,
+}) {
+  const isCard = l.type === "card";
+
+  if (isEditing) {
+    return (
+      <div
+        style={{
+          background: "#FFF9EC",
+          border: "1px solid #FFC93C",
+          borderRadius: 0,
+          padding: "10px 12px",
+          marginBottom: 8,
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <input
+            value={editBank}
+            onChange={(e) => setEditBank(e.target.value)}
+            placeholder="اسم البنك"
+            style={inputStyle}
+          />
+          <div style={{ display: "flex", gap: 6 }}>
+            <input
+              type="number"
+              value={editAmount}
+              onChange={(e) => setEditAmount(e.target.value)}
+              placeholder="المبلغ المتبقي"
+              style={{ ...inputStyle, flex: 1 }}
+            />
+            <input
+              type="number"
+              value={editMonthly}
+              onChange={(e) => setEditMonthly(e.target.value)}
+              placeholder="القسط الشهري"
+              style={{ ...inputStyle, flex: 1 }}
+            />
+          </div>
+          <input
+            type="number"
+            min={1}
+            max={31}
+            value={editDay}
+            onChange={(e) => setEditDay(e.target.value)}
+            placeholder="يوم الاستحقاق"
+            style={inputStyle}
+          />
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              onClick={() => onSaveEdit(l.id)}
+              style={{
+                flex: 1,
+                background: "#111111",
+                color: "#fff",
+                border: "none",
+                borderRadius: 0,
+                padding: "8px",
+                fontSize: 12,
+                fontWeight: 700,
+              }}
+            >
+              حفظ
+            </button>
+            <button
+              onClick={onCancelEdit}
+              style={{
+                flex: 1,
+                background: "#F0F0F0",
+                color: "#6B6B6B",
+                border: "none",
+                borderRadius: 0,
+                padding: "8px",
+                fontSize: 12,
+                fontWeight: 700,
+              }}
+            >
+              إلغاء
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        background: paid ? "#E4F7EF" : "#fff",
+        border: `1px solid ${paid ? "#9EE3C6" : "#E5E5E5"}`,
+        borderRadius: 0,
+        padding: "10px 12px",
+        marginBottom: 8,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: "50%",
+            background: isCard ? "#5B8DEF" : "#FF6B35",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          {isCard ? <CreditCard size={14} color="#fff" /> : <Landmark size={14} color="#fff" />}
+        </div>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#111111" }}>
+            {l.bank}
+            <span style={{ fontSize: 10.5, fontWeight: 600, color: "#6B6B6B" }}>
+              {" "}
+              — {isCard ? "بطاقة ائتمان" : "قرض"}
+            </span>
+          </div>
+          <div style={{ fontSize: 11, color: "#6B6B6B" }}>
+            {paid ? "تم دفع القسط" : `القسط يستحق يوم ${l.dueDay}`} · متبقي {l.amount.toLocaleString()} ر.س
+          </div>
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, fontSize: 13, color: "#111111" }}>
+          {l.monthlyPayment.toLocaleString()} ر.س
+        </span>
+        {!paid && (
+          <button
+            onClick={() => onPay(l.id)}
+            style={{
+              background: "#00B37E",
+              color: "#fff",
+              border: "none",
+              borderRadius: 0,
+              padding: "5px 8px",
+              fontSize: 11,
+              fontWeight: 700,
+            }}
+          >
+            دفعت
+          </button>
+        )}
+        <button
+          onClick={() => onStartEdit(l)}
+          style={{
+            background: "none",
+            border: "1px solid #E5E5E5",
+            borderRadius: 0,
+            padding: 5,
+            display: "flex",
+          }}
+        >
+          <Pencil size={12} color="#6B6B6B" />
+        </button>
+        <button
+          onClick={() => onDelete(l.id)}
+          style={{
+            background: "none",
+            border: "1px solid #FFB3AD",
+            borderRadius: 0,
+            padding: 5,
+            display: "flex",
+          }}
+        >
+          <X size={12} color="#FF3B30" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function RecurringRow({
+  r,
+  overdue,
+  paid,
+  onPay,
+  onDelete,
+  isEditing,
+  onStartEdit,
+  onCancelEdit,
+  onSaveEdit,
+  editLabel,
+  setEditLabel,
+  editAmount,
+  setEditAmount,
+  editCat,
+  setEditCat,
+  editFrequency,
+  setEditFrequency,
+  editDay,
+  setEditDay,
+  editMonth,
+  setEditMonth,
+  editNote,
+  setEditNote,
+}) {
+  const c = CATS[r.cat];
+  const Icon = c.icon;
+
+  let dueText = "";
+  if (paid) {
+    dueText = "تم الدفع";
+  } else if (r.frequency === "monthly") {
+    dueText = (overdue ? "متأخر — " : "") + `يستحق يوم ${r.dueDay} كل شهر`;
+  } else if (r.frequency === "yearly") {
+    dueText = (overdue ? "متأخر — " : "") + `يستحق ${r.dueDay} ${MONTH_NAMES[r.dueMonth - 1]} كل سنة`;
+  } else {
+    dueText = r.note || "استحقاق غير دوري";
+  }
+
+  if (isEditing) {
+    return (
+      <div
+        style={{
+          background: "#FFF9EC",
+          border: "1px solid #FFC93C",
+          borderRadius: 0,
+          padding: "10px 12px",
+          marginBottom: 8,
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <input value={editLabel} onChange={(e) => setEditLabel(e.target.value)} placeholder="الاسم" style={inputStyle} />
+          <div style={{ display: "flex", gap: 6 }}>
+            <input
+              type="number"
+              value={editAmount}
+              onChange={(e) => setEditAmount(e.target.value)}
+              placeholder="المبلغ"
+              style={{ ...inputStyle, flex: 1 }}
+            />
+            <select value={editCat} onChange={(e) => setEditCat(e.target.value)} style={{ ...inputStyle, flex: 1 }}>
+              {CAT_KEYS.map((k) => (
+                <option key={k} value={k}>
+                  {CATS[k].label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div style={{ display: "flex", gap: 6 }}>
+            {[
+              { key: "monthly", label: "شهري" },
+              { key: "yearly", label: "سنوي" },
+              { key: "other", label: "أخرى" },
+            ].map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setEditFrequency(f.key)}
+                style={{
+                  flex: 1,
+                  background: editFrequency === f.key ? "#111111" : "#F0F0F0",
+                  color: editFrequency === f.key ? "#fff" : "#6B6B6B",
+                  border: "none",
+                  borderRadius: 0,
+                  padding: "7px 4px",
+                  fontSize: 11,
+                  fontWeight: 700,
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {editFrequency === "monthly" && (
+            <input
+              type="number"
+              min={1}
+              max={31}
+              value={editDay}
+              onChange={(e) => setEditDay(e.target.value)}
+              placeholder="يوم الاستحقاق (1-31)"
+              style={inputStyle}
+            />
+          )}
+          {editFrequency === "yearly" && (
+            <div style={{ display: "flex", gap: 6 }}>
+              <input
+                type="number"
+                min={1}
+                max={31}
+                value={editDay}
+                onChange={(e) => setEditDay(e.target.value)}
+                placeholder="اليوم"
+                style={{ ...inputStyle, flex: 1 }}
+              />
+              <select value={editMonth} onChange={(e) => setEditMonth(e.target.value)} style={{ ...inputStyle, flex: 1.4 }}>
+                {MONTH_NAMES.map((m, i) => (
+                  <option key={m} value={i + 1}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {editFrequency === "other" && (
+            <input
+              value={editNote}
+              onChange={(e) => setEditNote(e.target.value)}
+              placeholder="مثال: كل 3 أشهر"
+              style={inputStyle}
+            />
+          )}
+
+          <div style={{ display: "flex", gap: 6 }}>
+            <button
+              onClick={() => onSaveEdit(r.id)}
+              style={{ flex: 1, background: "#111111", color: "#fff", border: "none", borderRadius: 0, padding: "8px", fontSize: 12, fontWeight: 700 }}
+            >
+              حفظ
+            </button>
+            <button
+              onClick={onCancelEdit}
+              style={{ flex: 1, background: "#F0F0F0", color: "#6B6B6B", border: "none", borderRadius: 0, padding: "8px", fontSize: 12, fontWeight: 700 }}
+            >
+              إلغاء
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        background: overdue ? "#FFE5E3" : "#fff",
+        border: `1px solid ${overdue ? "#FFB3AD" : "#E5E5E5"}`,
+        borderRadius: 0,
+        padding: "10px 12px",
+        marginBottom: 8,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div
+          style={{
+            width: 30,
+            height: 30,
+            borderRadius: "50%",
+            background: overdue ? "#FF3B30" : c.color,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <Icon size={14} color="#fff" />
+        </div>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#111111" }}>{r.label}</div>
+          <div style={{ fontSize: 11, color: overdue ? "#FF3B30" : "#6B6B6B", fontWeight: overdue ? 700 : 400 }}>
+            {dueText}
+          </div>
+        </div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ fontFamily: "'IBM Plex Mono', monospace", fontWeight: 700, fontSize: 13, color: "#111111" }}>
+          {r.amount} ر.س
+        </span>
+        {!paid && (
+          <button
+            onClick={() => onPay(r.id)}
+            style={{
+              background: overdue ? "#FF3B30" : "#00B37E",
+              color: "#fff",
+              border: "none",
+              borderRadius: 0,
+              padding: "5px 8px",
+              fontSize: 11,
+              fontWeight: 700,
+            }}
+          >
+            دفعت
+          </button>
+        )}
+        <button
+          onClick={() => onStartEdit(r)}
+          style={{ background: "none", border: "1px solid #E5E5E5", borderRadius: 0, padding: 5, display: "flex" }}
+        >
+          <Pencil size={12} color="#6B6B6B" />
+        </button>
+        <button
+          onClick={() => onDelete(r.id)}
+          style={{ background: "none", border: "1px solid #FFB3AD", borderRadius: 0, padding: 5, display: "flex" }}
+        >
+          <X size={12} color="#FF3B30" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  }
+</script>
+</body>
+</html>
